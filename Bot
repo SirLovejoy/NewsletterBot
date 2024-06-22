@@ -1,0 +1,87 @@
+pip install email-validator
+
+import smtplib
+import os
+from email.message import EmailMessage
+from email.utils import formataddr
+from email_validator import validate_email, EmailNotValidError
+
+SUBSCRIBERS_FILE = 'subscribers.txt'
+
+# Helper function to load subscribers from file
+def load_subscribers():
+    if not os.path.exists(SUBSCRIBERS_FILE):
+        return []
+    with open(SUBSCRIBERS_FILE, 'r') as file:
+        subscribers = file.read().splitlines()
+    return subscribers
+
+# Helper function to save subscribers to file
+def save_subscribers(subscribers):
+    with open(SUBSCRIBERS_FILE, 'w') as file:
+        for subscriber in subscribers:
+            file.write(subscriber + '\n')
+
+# Add a new subscriber
+def add_subscriber(email):
+    try:
+        v = validate_email(email)  # Validate email
+        email = v["email"]
+        subscribers = load_subscribers()
+        if email not in subscribers:
+            subscribers.append(email)
+            save_subscribers(subscribers)
+            print(f"{email} has been subscribed.")
+        else:
+            print(f"{email} is already subscribed.")
+    except EmailNotValidError as e:
+        print(str(e))
+
+# Remove a subscriber
+def remove_subscriber(email):
+    subscribers = load_subscribers()
+    if email in subscribers:
+        subscribers.remove(email)
+        save_subscribers(subscribers)
+        print(f"{email} has been unsubscribed.")
+    else:
+        print(f"{email} is not in the subscriber list.")
+
+# Send newsletter
+def send_newsletter(subject, content):
+    subscribers = load_subscribers()
+    if not subscribers:
+        print("No subscribers to send to.")
+        return
+
+    sender_email = "your_email@example.com"  # Replace with your email
+    sender_name = "Your Name"  # Replace with your name
+    password = "your_password"  # Replace with your email account password
+
+    msg = EmailMessage()
+    msg['Subject'] = subject
+    msg['From'] = formataddr((sender_name, sender_email))
+    msg.set_content(content)
+
+    # Set up the SMTP server
+    try:
+        with smtplib.SMTP_SSL('smtp.example.com', 465) as server:  # Replace with your SMTP server details
+            server.login(sender_email, password)
+            for email in subscribers:
+                msg['To'] = email
+                server.send_message(msg)
+                print(f"Newsletter sent to {email}")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+# Example usage
+if __name__ == "__main__":
+    # Add subscribers
+    add_subscriber("test1@example.com")
+    add_subscriber("test2@example.com")
+    
+    # Remove a subscriber
+    remove_subscriber("test1@example.com")
+
+    # Send a newsletter
+    send_newsletter("Monthly Newsletter", "This is the content of the monthly newsletter.")
